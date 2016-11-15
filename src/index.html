@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <!-- Responsive is good -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ITP 01</title>
+    <!-- Normalize the default margins around canvas; slight overkill -->
+    <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+    <style>
+      html, body {
+        /* blend in with canvas */
+        background-color: #333;
+        /* fullheight frame to fix broken resize when body shrinks */
+        height: 100%;
+        display: flex;
+        /* center canvas with Flexbox */
+        align-items: center;
+        align-content: center;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Popmotion for dynamic value interpolation // version not up to date -->
+    <!--
+    <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/popmotion/4.3.4/popmotion.global.min.js"
+    charset="utf-8"></script>
+    -->
+    <!-- P5.js will need Popmotion -->
+    <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.4/p5.min.js"
+    charset="utf-8"></script>
+    <!-- finally start the sketch -->
+    <script src="script.js" charset="utf-8" defer></script>
+  </body>
+</html>
