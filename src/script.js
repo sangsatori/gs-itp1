@@ -13,13 +13,27 @@ const ACCENTS = [ // bright accents
 ];
 
 // GLOBALS
-const ENTITY_COUNT = 128;
+const ENTITY_COUNT = 32;
 const LIMIT = 64; // scaling resolution
 const INNER_AREA = .8; // percentage of area for entity placement
 
 // dynamic object collections
 let entities;
 let gravity;
+
+// debug stuff
+//const FR = (n) => frameRate(n);
+let running;
+let fr;
+const PAUSE = () => {
+  if (running) {
+    frameRate(NaN);
+  } else {
+    frameRate(fr);
+  }
+  running = !running;
+}
+
 
 // utility functions
 const getSize = () => new Array(2).fill(min(windowWidth, windowHeight)); // 2-value array
@@ -29,8 +43,22 @@ const Entity = (pos, variance) => ({
   pos, // ES6 object assignment
   size: random(variance[0], variance[1]),
   vel: createVector(random(-.75, .75), random(-.75, .75)), // TODO proper values
-  trail: []
+  trail: new FixedArray(32)
 });
+
+// TODO create a new type of FixedArray
+class FixedArray extends Array {
+  constructor(size) {
+    super();
+    this._size = size;
+  }
+  push(x) {
+    super.push(x);
+    if (this.length > this._size) {
+      super.shift();
+    }
+  }
+}
 
 function setup() {
   gravity = createVector(LIMIT, LIMIT).div(2);
@@ -42,12 +70,16 @@ function setup() {
   ));
   createCanvas(...getSize()); // spread from single call
   strokeWeight(.25);
+  running = true;
 }
 
 function draw() {
-  // calculate the new state
+  fr = frameRate();
+  var prev;
   entities.forEach(e => {
-    e.pos.add(e.vel.add(gravity.copy().sub(e.pos).normalize().div(64)));
+    prev = e.pos.copy();
+    e.pos.add(e.vel.add(gravity.copy().sub(e.pos).normalize().div(LIMIT)));
+    e.trail.push([prev, e.pos.copy()]); // avoid mutation?
   });
 
   // draw the state
@@ -58,11 +90,15 @@ function draw() {
   scale(getScale()); // ensure correct scale
 
   // set drawing mode
-  noFill();
+  fill(ACCENTS[0]);
   stroke(ACCENTS[0]);
 
   // draw
   entities.forEach(e => {
+    let prev = e.pos;
+    e.trail.forEach(pair => {
+     line(pair[0].x, pair[0].y, pair[1].x, pair[1].y);
+    })
     ellipse(e.pos.x, e.pos.y, e.size);
   });
 }
