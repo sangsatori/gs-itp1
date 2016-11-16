@@ -65,7 +65,7 @@ function setup() {
   entities = new Array(ENTITY_COUNT)
   .fill(undefined)
   .map(_ => Entity(
-    createVector(random(0, LIMIT-1), random(0, LIMIT-1)),
+    createVector(random(LIMIT-1), random(LIMIT-1)),
     [.25, 3.25]
   ));
   createCanvas(...getSize()); // spread from single call
