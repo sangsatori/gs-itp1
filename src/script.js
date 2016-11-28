@@ -11,6 +11,10 @@ const ACCENTS = [ // bright accents
   '#FFDC00', // yellow
   '#FF4136 ' // red
 ];
+let colour = {
+  accent: ACCENTS[0],
+  base: BASES[1]
+}
 
 // GLOBALS
 const ENTITY_COUNT = 32;
@@ -45,6 +49,9 @@ const Entity = (pos, variance) => ({
   vel: createVector(random(-.75, .75), random(-.75, .75)), // TODO proper values
   trail: new FixedArray(32)
 });
+const KEYS = {
+  'space': 32
+};
 
 // TODO create a new type of FixedArray
 class FixedArray extends Array {
@@ -83,15 +90,15 @@ function draw() {
   });
 
   // draw the state
-  background(BASES[1]);
+  background(colour.base);
 
   let offset = (min(height, width) * (1 - INNER_AREA) / 2); // allocate margins
   translate(offset, offset); // center in the middle
   scale(getScale()); // ensure correct scale
 
   // set drawing mode
-  fill(ACCENTS[0]);
-  stroke(ACCENTS[0]);
+  fill(colour.accent);
+  stroke(colour.accent);
 
   // draw
   entities.forEach(e => {
@@ -105,6 +112,15 @@ function draw() {
 
 function mouseReleased() {
   gravity = createVector(mouseX, mouseY).div(getScale());
+}
+function keyPressed() {
+  switch (keyCode) {
+    case KEYS['space']:
+      colour.accent = random(ACCENTS);
+      break;
+    default:
+      return;
+  }
 }
 
 // screen resize handdler
