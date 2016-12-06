@@ -1,130 +1,120 @@
-// Uses ES6; transpile or use latest Chrome/Firefox
-// define color schema here (hex codes from http://clrs.cc/)
+// Uses ES6 - transpile or use an evergreen browser
+// constants capitalized by convention
+// limited use of JSDoc annotation syntax
 
-const BASES = [ // grayscale dark to light
+/* Sketch globals */
+// number of entities in the system
+const ENTITY_COUNT = 32; // tweak as necessary for performance
+// base for scaling up to match actual screen resolution
+const BASE_SCALE = 64; // base of 4 for less surprises with scaling, rendering
+// percentage of area for entity placement
+const INNER_AREA = .8; // leaves 10% of margin around initial placement
+
+/* Key mapping for interactivity */
+const KEYS = {
+  'space': 32
+};
+
+/* Colour palettes from http://clrs.cc/ */
+// grayscale backgrounds
+const BASES = [
   '#111', // near-black
   '#333', // dark gray
   '#DDD' // silver
 ];
-const ACCENTS = [ // bright accents
+// bright accents
+const ACCENTS = [
   '#0074D9', // blue
   '#01FF70', // lime green
   '#FFDC00', // yellow
   '#FF4136 ' // red
 ];
+
 // current colour state
 let colour = {
   accent: ACCENTS[0],
   base: BASES[1]
 }
 
-// GLOBALS, tweak as necessary
-const ENTITY_COUNT = 32;
-const LIMIT = 64; // scaling resolution
-const INNER_AREA = .8; // percentage of area for entity placement
-// interactive key map
-const KEYS = {
-  'space': 32 // toggle colour
-};
+/* dynamic system variables */
+let entities; // array of moving objects
+let gravity; // allocatable gravity well
 
-// dynamic object collections
-let entities;
-let gravity;
-
-// debug functions
-let running; // pause state
-let fr; // framerate memory
-// pause the sketch for variable inspection
-const PAUSE = () => {
-  if (running) {
-    frameRate(NaN); // stops drawing
-  } else {
-    frameRate(fr); // retur to previous framerate
-  }
-  running = !running; // toggle pause state
-}
-
-// utility functions
-const getSize = () => new Array(2).fill(min(windowWidth, windowHeight)); // 2-value array
-const getScale = () => min(height, width) / LIMIT * INNER_AREA; // scale factor
-
-// construct new entity objects
-const Entity = (pos, variance) => ({
-  pos, // direct ES6 object assignment
-  size: random(variance[0], variance[1]),
-  vel: createVector(random(-.75, .75), random(-.75, .75)), // TODO proper values
-  trail: new FixedArray(32)
+/** Represents a moving entity with position and velocity
+  * @constructor
+  */
+const Entity = (position, sizeRange) => ({
+  // position vector
+  position, // shorthand ES6 object assignment
+  // unique size of the entity
+  size: random(sizeRange[0], sizeRange[1]), // within range provided
+  // initial velocity
+  velocity: createVector(random(-.75, .75), random(-.75, .75)),
+  // trail following entity
+  trail: new FixedArray(32) // adjust length for performance
 });
 
-// TODO create a new type of FixedArray
-class FixedArray extends Array {
-  constructor(size) {
-    super();
-    // fixed size limit
-    this._size = size; // naming by convention for private attributes
-  }
-  push(x) {
-    super.push(x);
-    // ensure length doesn't exceed size limit
-    if (this.length > this._size) {
-      super.shift();
-    }
-  }
-}
-
-// CALLBACKS
+/* P5 CALLBACKS */
 function setup() {
-  // init global gravity well
-  gravity = createVector(LIMIT, LIMIT).div(2);
+  // initial central gravity well
+  gravity = createVector(BASE_SCALE, BASE_SCALE).div(2);
+
   // populate with entities
   entities = new Array(ENTITY_COUNT)
-  .fill(undefined) // so .map() works
-  .map(_ => Entity( // underscore for unneeded value
-    createVector(random(LIMIT-1), random(LIMIT-1)),
+  .fill(undefined) // so .map() works, works only with static value
+  .map(_ => Entity( // underscore convention for unneeded argument
+    // position within scale shifted back by 1 due to canvas starting position of 0
+    createVector(random(BASE_SCALE-1), random(BASE_SCALE-1)),
+    // size within aesthetically pleasing range
     [.25, 3.25]
   ));
+
   createCanvas(...getSize()); // spread from single call
   // visual adjustments
   strokeWeight(.25);
-  // all systems go
-  running = true;
 }
 
 function draw() {
-  fr = frameRate(); // register framerate
+  /* Update state within system */
+  var prev; // keep track for trail vector pairs
+  entities.forEach(e => { // parse & change entities
+    prev = e.position.copy(); // lock previous entity position
+    // update position by current velocity
+    e.position.add(computeVelocity({
+      position: e.position,
+      velocity: e.velocity
+    }, gravity, BASE_SCALE));
 
-  // update state
-  var prev;
-  entities.forEach(e => { // iterate over entities
-    prev = e.pos.copy(); // lock previous entity position
-    // calculate position with forces applied
-    e.pos.add(e.vel.add(gravity.copy().sub(e.pos).normalize().div(LIMIT)));
-    // update the traiil
-    e.trail.push([prev, e.pos.copy()]); // avoid mutation of position
+    // update the trail
+    e.trail.push([prev, e.position.copy()]); // don't mutate position vector
   });
 
-  // draw the state
+  /* Prepare for drawing the frame */
+  // clear over previous frame
   background(colour.base);
-
-  let offset = (min(height, width) * (1 - INNER_AREA) / 2); // allocate margins
-  translate(offset, offset); // center in the middle
-  scale(getScale()); // ensure correct scale
+  // offset of origin for centering the sketch
+  let offset = (min(height, width) * (1 - INNER_AREA) / 2); // account for margins
+  // center in the middle
+  translate(offset, offset);
+  // ensure correct scale// ensure correct scale
+  scale(getScale());
   // set drawing mode
   fill(colour.accent);
   stroke(colour.accent);
 
-  // draw state
-  entities.forEach(e => { // parse entities with the new state
-    let prev = e.pos;
-    e.trail.forEach(pair => { // lines with start & end positions
+  /* Draw the current state */
+  entities.forEach(e => { // parse entities
+    // draw the trail
+    e.trail.forEach(pair => { // lines need a coordinate pair
      line(pair[0].x, pair[0].y, pair[1].x, pair[1].y);
     })
+
     // draw the entity
-    ellipse(e.pos.x, e.pos.y, e.size);
+    ellipse(e.position.x, e.position.y, e.size);
   });
 }
 
-// INTERACTIVITY
+// User interaction handlers
 function mouseReleased() {
   gravity = createVector(mouseX, mouseY).div(getScale()); // account for scale
 }
@@ -140,7 +130,46 @@ function keyPressed() {
   }
 }
 
-// screen resize handler
+// screen resize handler for responsive canvas
 function windowResized() {
   resizeCanvas(...getSize()); // spread from single call
 }
+
+/* CUSTOM UTILITIES */
+/** Calculates new entity velocity. */
+const computeVelocity = (entity, attractor, scalar) => {
+  // p5.Vector mutates upon vector operations
+  // preventive copying to avoid changing the global variables during calculation
+
+  let change = attractor.copy() // avoid mutation of global vector
+    .sub(entity.position) // difference between attractor & position
+    .normalize() // to unit vector
+    .div(scalar); // adjust by scalar to ensure scaling correctness
+
+  // combining old velocity & change vector yields an updated velocity vector
+  return entity.velocity.add(change);
+}
+
+/** Extended Array with set fixed length
+  @constructor
+  */
+class FixedArray extends Array { // ES6 class syntax for convenience
+  constructor(size) {
+    super(); // invoke parent constructor
+    // fixed size limit
+    this._size = size; // naming by convention for private properties
+  }
+  push(x) {
+    super.push(x); // invoke parent functionality
+    // ensure length doesn't exceed size limit
+    if (this.length > this._size) {
+      super.shift();
+    }
+  }
+}
+
+/** Returns 2-value array of current screen dimensions. */
+const getSize = () => new Array(2).fill(min(windowWidth, windowHeight));
+
+/** Gets current scaling factor. */
+const getScale = () => min(height, width) / BASE_SCALE * INNER_AREA;
