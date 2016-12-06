@@ -181,6 +181,6 @@ const buildArray = (n, func) => {
 }
 
 /** Turn coordinate pairs into flat array. */
-const FlattenCoordinates = ...coords => coords.reduce((previous, current) => {
+const FlattenCoordinates = (...coords) => coords.reduce((previous, current) => {
   return previous.concat([current.x, current.y]);
 }, []); // reduce into an array
