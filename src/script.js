@@ -47,7 +47,7 @@ const Entity = (position, sizeRange) => ({
   // position vector
   position, // shorthand ES6 object assignment
   // unique size of the entity
-  size: random(sizeRange[0], sizeRange[1]), // within range provided
+  size: random(...sizeRange), // within range provided
   // initial velocity
   velocity: createVector(random(-.75, .75), random(-.75, .75)),
   // trail following entity
@@ -57,12 +57,10 @@ const Entity = (position, sizeRange) => ({
 /* P5 CALLBACKS */
 function setup() {
   // initial central gravity well
-  gravity = createVector(BASE_SCALE, BASE_SCALE).div(2);
+  gravity = createVector(BASE_SCALE, BASE_SCALE).div(2); // halve the vector to center
 
   // populate with entities
-  entities = new Array(ENTITY_COUNT)
-  .fill(undefined) // so .map() works, works only with static value
-  .map(_ => Entity( // underscore convention for unneeded argument
+  entities = buildArray(ENTITY_COUNT, () => Entity(
     // position within scale shifted back by 1 due to canvas starting position of 0
     createVector(random(BASE_SCALE-1), random(BASE_SCALE-1)),
     // size within aesthetically pleasing range
@@ -85,8 +83,8 @@ function draw() {
       velocity: e.velocity
     }, gravity, BASE_SCALE));
 
-    // update the trail
-    e.trail.push([prev, e.position.copy()]); // don't mutate position vector
+    // update the trail with extracted coordinates
+    e.trail.push(FlattenCoordinates(prev, e.position));
   });
 
   /* Prepare for drawing the frame */
@@ -106,9 +104,8 @@ function draw() {
   entities.forEach(e => { // parse entities
     // draw the trail
     e.trail.forEach(pair => { // lines need a coordinate pair
-     line(pair[0].x, pair[0].y, pair[1].x, pair[1].y);
-    })
-
+      line(...pair);
+    });
     // draw the entity
     ellipse(e.position.x, e.position.y, e.size);
   });
@@ -173,3 +170,17 @@ const getSize = () => new Array(2).fill(min(windowWidth, windowHeight));
 
 /** Gets current scaling factor. */
 const getScale = () => min(height, width) / BASE_SCALE * INNER_AREA;
+
+/** Build an array of set length, populate with callback */
+const buildArray = (n, func) => {
+  let collection = [];
+  for (var i = 0; i < n; i++) {
+    collection.push(func());
+  };
+  return collection;
+}
+
+/** Turn coordinate pairs into flat array. */
+const FlattenCoordinates = ...coords => coords.reduce((previous, current) => {
+  return previous.concat([current.x, current.y]);
+}, []); // reduce into an array
