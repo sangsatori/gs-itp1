@@ -39,6 +39,8 @@ let colour = {
 /* dynamic system variables */
 let entities; // array of moving objects
 let gravity; // allocatable gravity well
+let ripples; // reference to generator
+let offset; // calculated offset for scaling
 
 /** Represents a moving entity with position and velocity
   * @constructor
@@ -68,11 +70,12 @@ function setup() {
   ));
 
   createCanvas(...getSize()); // spread from single call
-  // visual adjustments
-  strokeWeight(.25);
 }
 
 function draw() {
+  // visual adjustments
+  strokeWeight(.25);
+
   /* Update state within system */
   var prev; // keep track for trail vector pairs
   entities.forEach(e => { // parse & change entities
@@ -91,7 +94,7 @@ function draw() {
   // clear over previous frame
   clear();
   // offset of origin for centering the sketch
-  let offset = (min(height, width) * (1 - INNER_AREA) / 2); // account for margins
+  offset = (min(height, width) * (1 - INNER_AREA) / 2); // account for margins
   // center in the middle
   translate(offset, offset);
   // ensure correct scale// ensure correct scale
@@ -109,11 +112,19 @@ function draw() {
     // draw the entity
     ellipse(e.position.x, e.position.y, e.size);
   });
+  /* draw UI overlay */
+  drawUI();
 }
 
 // User interaction handlers
 function mouseReleased() {
-  gravity = createVector(mouseX, mouseY).div(getScale()); // account for scale
+  // move gravity attractor
+  gravity = createVector(mouseX, mouseY)
+  .sub(createVector(offset, offset)) // account for scale
+  .div(getScale());
+
+  // start ripple generator for UI feedback
+  ripples = rippleGen({ from: 0, to: 5 }, 3, .2);
 }
 
 function keyPressed() {
@@ -184,3 +195,33 @@ const buildArray = (n, func) => {
 const FlattenCoordinates = (...coords) => coords.reduce((previous, current) => {
   return previous.concat([current.x, current.y]);
 }, []); // reduce into an array
+
+function* rippleGen(range = { from: 1, to: 5}, iterations = 3, perStep = .2) {
+  const distance = range.to - range.from;
+  let value = range.from;
+  let delta = distance / (distance / perStep);
+  yield value;
+  for (var i = 0; i < iterations; i++) {
+    while (value < range.to) {
+      value += delta;
+      yield value;
+    }
+    while (value > range.from) {
+      value -= delta;
+      yield value;
+    }
+  }
+}
+
+function drawUI() {
+  if (ripples) {
+    let next = ripples.next();
+    if (next.done) {
+      return;
+    }
+    let value = next.value;
+    noFill();
+    strokeWeight(.1);
+    ellipse(gravity.x, gravity.y, value, value);
+  }
+};
