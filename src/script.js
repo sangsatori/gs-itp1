@@ -89,7 +89,7 @@ function draw() {
 
   /* Prepare for drawing the frame */
   // clear over previous frame
-  background(colour.base);
+  clear();
   // offset of origin for centering the sketch
   let offset = (min(height, width) * (1 - INNER_AREA) / 2); // account for margins
   // center in the middle
